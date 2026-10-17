@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="si" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard | රසමුතු Rice Mills</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌾</text></svg>">
+  
+  <!-- Google Fonts: Inter & Noto Serif Sinhala -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Serif+Sinhala:wght@400;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            sinhala: ['"Noto Serif Sinhala"', 'serif'],
+          },
+          colors: {
+            amber: {
+              50: '#fffbeb',
+              100: '#fef3c7',
+              200: '#fde68a',
+              300: '#fcd34d',
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706',
+              700: '#b45309',
+              800: '#92400e',
+              900: '#78350f',
+              950: '#451a03',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <style>
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #print-modal-container, #print-modal-container * {
+        visibility: visible;
+      }
+      #print-modal-container {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: white;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- ========================================================================= -->
+  <!-- 1. PIN AUTHENTICATION MODAL (Default PIN: 1234)                           -->
+  <!-- ========================================================================= -->
+  <div id="pin-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 sm:p-8 shadow-2xl border border-amber-200 text-center relative animate-fadeIn">
+      <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-700 text-slate-950 flex items-center justify-center mx-auto mb-4 shadow-lg text-2xl font-black">
+        🌾
+      </div>
+      <h2 class="text-xl font-extrabold text-slate-900 mb-1">
+        රසමුතු Admin Access
+      </h2>
+      <p class="text-xs text-slate-500 mb-6 font-sinhala">
+        පරිපාලක පුවරුවට ඇතුළු වීමට රහස්‍ය අංකය (PIN) ඇතුළත් කරන්න.
+      </p>
+
+      <form id="pin-form" onsubmit="event.preventDefault(); window.verifyAdminPin();" class="space-y-4">
+        <div>
+          <input id="admin-pin-input" type="password" maxlength="8" placeholder="••••" autofocus required class="w-full text-center text-3xl tracking-widest font-mono py-3 px-4 rounded-2xl border-2 border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20 focus:outline-none transition-all">
+          <p id="pin-error-msg" class="text-xs text-red-600 font-medium mt-2 hidden">
+            වැරදි PIN අංකයකි! නැවත උත්සාහ කරන්න.
+          </p>
+        </div>
+
+        <button type="submit" class="w-full py-3.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-2xl shadow-lg shadow-amber-600/30 transition-all text-sm font-sinhala">
+          ඇතුළු වන්න (Login)
+        </button>
+
+        <a href="index.html" class="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 transition-colors pt-2">
+          <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+          <span>ආපසු වෙබ් අඩවිය වෙත (Back to Store)</span>
+        </a>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 2. MAIN DASHBOARD CONTENT (Visible when authenticated)                    -->
+  <!-- ========================================================================= -->
+  <div id="dashboard-app" class="hidden flex-1 flex flex-col">
+
+    <!-- Top Admin Header -->
+    <header class="bg-slate-950 text-white sticky top-0 z-40 border-b border-amber-500/20 shadow-md">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-700 flex items-center justify-center text-slate-900 font-black text-sm">
+            🌾
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-sinhala font-black text-base sm:text-lg text-white">රසමුතු</span>
+              <span class="text-[10px] bg-amber-500 text-slate-950 font-extrabold px-1.5 py-0.5 rounded tracking-wide">ADMIN PORTAL</span>
+            </div>
+            <p class="text-[10px] text-slate-400 -mt-0.5 hidden sm:block">Rice Mills • වේදිනිගම, කුඩා කත්නෝරුව, මීගලෑව</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-3">
+          <!-- Supabase DB Status Badge -->
+          <button onclick="window.switchAdminTab('settings'); window.scrollToSupabaseSettings();" id="admin-supabase-status-btn" class="flex items-center gap-1.5 text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl transition-all border bg-slate-900 border-slate-700 text-amber-300 hover:border-amber-400">
+            <span class="w-2 h-2 rounded-full bg-amber-400" id="admin-supabase-dot"></span>
+            <span class="text-[11px]" id="admin-supabase-label">Local Storage</span>
+          </button>
+
+          <a href="index.html" target="_blank" class="flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded-xl transition-all border border-slate-700">
+            <i data-lucide="external-link" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span class="hidden sm:inline">Storefront</span>
+          </a>
+          <button onclick="window.adminLogout()" class="flex items-center gap-1.5 text-xs font-semibold text-red-300 hover:text-white bg-red-950/60 hover:bg-red-800 px-3 py-2 rounded-xl transition-all border border-red-800/60">
+            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+            <span>Logout</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="bg-white border-b border-slate-200 sticky top-16 z-30 shadow-xs">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-2 sm:gap-4 overflow-x-auto py-2.5">
+        <button onclick="window.switchAdminTab('overview')" id="nav-btn-overview" class="admin-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all bg-amber-500 text-slate-950 shadow-xs">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+          <span>දළ විශ්ලේෂණය (Overview)</span>
+        </button>
+        <button onclick="window.switchAdminTab('products')" id="nav-btn-products" class="admin-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-all">
+          <i data-lucide="package" class="w-4 h-4"></i>
+          <span>සහල් මිල ගණන් (Products)</span>
+        </button>
+        <button onclick="window.switchAdminTab('orders')" id="nav-btn-orders" class="admin-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-all">
+          <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+          <span>ඇණවුම් ලැයිස්තුව (Orders)</span>
+          <span id="tab-orders-badge" class="bg-emerald-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">0</span>
+        </button>
+        <button onclick="window.switchAdminTab('settings')" id="nav-btn-settings" class="admin-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-all">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+          <span>සැකසුම් (Settings)</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
+
+      <!-- ===================================================================== -->
+      <!-- TAB 1: OVERVIEW & STATS                                               -->
+      <!-- ===================================================================== -->
+      <section id="tab-overview" class="admin-tab-pane space-y-8">
+        
+        <!-- Welcome Hero -->
+        <div class="bg-gradient-to-r from-amber-600 to-amber-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <div class="inline-flex items-center gap-2 bg-black/20 text-amber-200 text-xs font-bold px-3 py-1 rounded-full mb-3 backdrop-blur-xs">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              Live Mill Operations Active
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold font-sinhala leading-tight">
+              රසමුතු Rice Mills පරිපාලන පුවරුව
+            </h1>
+            <p class="text-xs sm:text-sm text-amber-100 mt-2 font-sinhala max-w-xl">
+              05kg සහ 25kg සහල් පැක් මිල ගණන් වෙනස් කිරීම, තොග තත්ත්වය යාවත්කාලීන කිරීම සහ පාරිභෝගික ඇණවුම් පහසුවෙන්ම මෙතැනින් පාලනය කරන්න.
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-3 shrink-0">
+            <button onclick="window.addDemoOrder()" class="px-4 py-2.5 bg-white hover:bg-amber-50 text-amber-900 font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2">
+              <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-600"></i>
+              <span>Add Test Order (+ Demo)</span>
+            </button>
+            <button onclick="window.switchAdminTab('products')" class="px-4 py-2.5 bg-slate-950 hover:bg-slate-900 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2">
+              <i data-lucide="edit-3" class="w-4 h-4 text-amber-400"></i>
+              <span>Edit Rice Prices</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 KPI Stat Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          
+          <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex items-center gap-4">
+            <div class="w-14 h-14 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+              <i data-lucide="shopping-bag" class="w-7 h-7"></i>
+            </div>
+            <div>
+              <div class="text-xs text-slate-500 font-semibold font-sinhala">මුළු ඇණවුම් ගණන</div>
+              <div id="kpi-orders-count" class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-0.5">0</div>
+              <div class="text-[11px] text-slate-400">Total Customer Orders</div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex items-center gap-4">
+            <div class="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+              <i data-lucide="dollar-sign" class="w-7 h-7"></i>
+            </div>
+            <div>
+              <div class="text-xs text-slate-500 font-semibold font-sinhala">මුළු ආදායම් වටිනාකම</div>
+              <div id="kpi-revenue" class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">Rs. 0</div>
+              <div class="text-[11px] text-emerald-600 font-semibold">Total Revenue</div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex items-center gap-4">
+            <div class="w-14 h-14 rounded-2xl bg-blue-100 text-blue-800 flex items-center justify-center shrink-0">
+              <i data-lucide="scale" class="w-7 h-7"></i>
+            </div>
+            <div>
+              <div class="text-xs text-slate-500 font-semibold font-sinhala">අලෙවි වූ සහල් බර</div>
+              <div id="kpi-weight" class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-0.5">0 kg</div>
+              <div class="text-[11px] text-slate-400">Total KG Volume Sold</div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex items-center gap-4">
+            <div class="w-14 h-14 rounded-2xl bg-purple-100 text-purple-800 flex items-center justify-center shrink-0">
+              <i data-lucide="check-circle" class="w-7 h-7"></i>
+            </div>
+            <div>
+              <div class="text-xs text-slate-500 font-semibold font-sinhala">සක්‍රීය සහල් වර්ග</div>
+              <div id="kpi-active-products" class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-0.5">4 / 4</div>
+              <div class="text-[11px] text-purple-700 font-semibold">05kg & 25kg Only</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Quick Action & Recent Orders Preview -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          <!-- Recent Orders Mini Table (8 Cols) -->
+          <div class="lg:col-span-8 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="font-sinhala font-bold text-lg text-slate-900">නවතම ඇණවුම් (Recent Orders)</h3>
+                <p class="text-xs text-slate-500">පාරිභෝගිකයින්ගෙන් ලැබුණු අවසන් ඇණවුම්</p>
+              </div>
+              <button onclick="window.switchAdminTab('orders')" class="text-xs font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1">
+                <span>සියල්ල බලන්න</span>
+                <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+
+            <div id="recent-orders-preview" class="divide-y divide-slate-100">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Quick Rice Price Summary Card (4 Cols) -->
+          <div class="lg:col-span-4 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 class="font-sinhala font-bold text-base text-slate-900">සහල් මිල ගණන්</h3>
+                <p class="text-[11px] text-slate-500">Current Bag Pricing</p>
+              </div>
+              <button onclick="window.switchAdminTab('products')" class="text-xs font-bold text-amber-600 hover:underline">
+                Edit
+              </button>
+            </div>
+
+            <div id="overview-price-list" class="space-y-3">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- TAB 2: PRODUCTS & BAG PRICING (05kg & 25kg Only)                     -->
+      <!-- ===================================================================== -->
+      <section id="tab-products" class="admin-tab-pane hidden space-y-6">
+        
+        <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+            <div>
+              <div class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full mb-1">
+                <i data-lucide="info" class="w-3.5 h-3.5"></i>
+                <span>Strict Packaging Standard: 05kg & 25kg Bags Only</span>
+              </div>
+              <h2 class="text-xl sm:text-2xl font-bold font-sinhala text-slate-900">
+                සහල් වර්ග මිල ගණන් සහ තොග කළමනාකරණය
+              </h2>
+              <p class="text-xs text-slate-500 mt-1">
+                මෙහිදී ඔබ වෙනස් කරන කිලෝවක මිල (Price per 1kg) අනුව 05kg සහ 25kg බෑග් වල මිල ස්වයංක්‍රීයව ගණනය වී වෙබ් අඩවියේ යාවත්කාලීන වේ.
+              </p>
+            </div>
+            <button onclick="window.resetProductsToDefault()" class="text-xs font-semibold text-slate-500 hover:text-red-600 transition-colors self-start sm:self-auto py-2 px-3 border border-slate-200 rounded-xl hover:bg-slate-50">
+              Reset Default Prices
+            </button>
+          </div>
+
+          <!-- Product Editing Cards Grid -->
+          <div id="admin-products-container" class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <!-- Dynamically populated by admin.js -->
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- TAB 3: CUSTOMER ORDERS MANAGEMENT                                     -->
+      <!-- ===================================================================== -->
+      <section id="tab-orders" class="admin-tab-pane hidden space-y-6">
+        
+        <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+          
+          <!-- Top Toolbar -->
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl sm:text-2xl font-bold font-sinhala text-slate-900">
+                පාරිභෝගික ඇණවුම් කළමනාකරණය
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">
+                වෙබ් අඩවිය හරහා ලැබුණු සියලුම සහල් ඇණවුම් විස්තර
+              </p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+              <button onclick="window.addDemoOrder()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center gap-1.5 font-sinhala">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>Add Test Order (+ Demo)</span>
+              </button>
+              <button onclick="window.exportOrdersCSV()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs rounded-xl shadow transition-all flex items-center gap-1.5">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                <span>Export CSV</span>
+              </button>
+              <button onclick="window.clearAllOrders()" class="px-3 py-2 text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl border border-red-200 transition-colors">
+                Clear All
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter Pills & Search Bar -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-100">
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0" id="order-status-filters">
+              <button onclick="window.filterOrders('All')" class="order-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-amber-500 text-slate-950 shadow-xs" data-filter="All">
+                All Orders (<span id="count-all">0</span>)
+              </button>
+              <button onclick="window.filterOrders('Pending')" class="order-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-all" data-filter="Pending">
+                Pending (<span id="count-pending">0</span>)
+              </button>
+              <button onclick="window.filterOrders('Confirmed')" class="order-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-all" data-filter="Confirmed">
+                Confirmed (<span id="count-confirmed">0</span>)
+              </button>
+              <button onclick="window.filterOrders('Delivered')" class="order-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-all" data-filter="Delivered">
+                Delivered (<span id="count-delivered">0</span>)
+              </button>
+              <button onclick="window.filterOrders('Cancelled')" class="order-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-all" data-filter="Cancelled">
+                Cancelled (<span id="count-cancelled">0</span>)
+              </button>
+            </div>
+
+            <div class="relative w-full sm:w-64">
+              <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+              <input id="orders-search-input" oninput="window.searchOrders(this.value)" type="text" placeholder="Search customer, phone, ID..." class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20">
+            </div>
+          </div>
+
+          <!-- Orders Table Container -->
+          <div class="overflow-x-auto rounded-2xl border border-slate-200">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
+                <tr>
+                  <th class="py-3 px-4">Order ID & Date</th>
+                  <th class="py-3 px-4">Customer Details</th>
+                  <th class="py-3 px-4">Bags & Varieties (05kg / 25kg)</th>
+                  <th class="py-3 px-4">Total Weight</th>
+                  <th class="py-3 px-4">Total Amount</th>
+                  <th class="py-3 px-4">Status</th>
+                  <th class="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="orders-table-body" class="divide-y divide-slate-100 bg-white">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Empty Orders State -->
+          <div id="orders-empty-state" class="hidden py-16 text-center">
+            <div class="w-16 h-16 rounded-3xl bg-amber-50 text-amber-700 flex items-center justify-center mx-auto mb-3">
+              <i data-lucide="inbox" class="w-8 h-8"></i>
+            </div>
+            <h4 class="font-sinhala text-base font-bold text-slate-800">ඇණවුම් කිසිවක් හමු නොවීය</h4>
+            <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
+              දැනට මෙම තත්ත්වය යටතේ කිසිදු ඇණවුමක් නොමැත. පරීක්ෂා කිරීම සඳහා Demo ඇණවුමක් එක් කරන්න.
+            </p>
+            <button onclick="window.addDemoOrder()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow font-sinhala">
+              Add Demo Order (+ Demo)
+            </button>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- TAB 4: SETTINGS & MILL CONFIGURATION                                  -->
+      <!-- ===================================================================== -->
+      <section id="tab-settings" class="admin-tab-pane hidden space-y-6">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          
+          <!-- Mill Hotline & WhatsApp Configuration -->
+          <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-5">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                <i data-lucide="phone-call" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 class="font-sinhala font-bold text-base text-slate-900">ඇණවුම් WhatsApp දුරකථන අංකය</h3>
+                <p class="text-xs text-slate-500">Official WhatsApp Dispatch Number</p>
+              </div>
+            </div>
+
+            <form onsubmit="event.preventDefault(); window.saveHotlineSettings();" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">WhatsApp අංකය (International format, no +):</label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-sm">+</span>
+                  <input id="setting-phone-input" type="text" value="94767136323" required class="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono focus:border-amber-500 focus:outline-none">
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1">Default: 94767136323 (076 713 6323)</p>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">මෝලේ නිල ලිපිනය (Business Address):</label>
+                <textarea id="setting-address-input" rows="2" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-sinhala focus:border-amber-500 focus:outline-none" readonly>රසමුතු Rice Mills, වේදිනිගම, කුඩා කත්නෝරුව, මීගලෑව</textarea>
+                <p class="text-[11px] text-slate-400 mt-1">රසමුතු ප්‍රධාන වී මෝල සංකීර්ණය</p>
+              </div>
+
+              <button type="submit" class="w-full py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow transition-all font-sinhala">
+                සැකසුම් සුරකින්න (Save Settings)
+              </button>
+            </form>
+          </div>
+
+          <!-- Admin Security PIN Change -->
+          <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-5">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+                <i data-lucide="shield" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 class="font-sinhala font-bold text-base text-slate-900">පරිපාලක PIN අංකය වෙනස් කිරීම</h3>
+                <p class="text-xs text-slate-500">Change Admin Access PIN</p>
+              </div>
+            </div>
+
+            <form onsubmit="event.preventDefault(); window.changeAdminPin();" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">වත්මන් PIN අංකය (Current PIN):</label>
+                <input id="pin-current" type="password" required maxlength="8" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono focus:border-amber-500 focus:outline-none">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">නව PIN අංකය (New PIN):</label>
+                <input id="pin-new" type="password" required maxlength="8" placeholder="e.g. 5678" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono focus:border-amber-500 focus:outline-none">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">නව PIN අංකය නැවත තහවුරු කරන්න:</label>
+                <input id="pin-confirm" type="password" required maxlength="8" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono focus:border-amber-500 focus:outline-none">
+              </div>
+
+              <p id="pin-change-msg" class="text-xs font-medium hidden"></p>
+
+              <button type="submit" class="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow transition-all font-sinhala">
+                PIN අංකය යාවත්කාලීන කරන්න (Update PIN)
+              </button>
+            </form>
+          </div>
+
+        </div>
+
+        <!-- Supabase Cloud Database (PostgreSQL) Configuration -->
+        <div id="supabase-config-section" class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-xl border border-emerald-100 shadow-2xs">
+                ⚡
+              </div>
+              <div>
+                <div class="flex items-center gap-2.5">
+                  <h3 class="font-sinhala font-bold text-lg text-slate-900">Supabase Cloud Database සැකසුම්</h3>
+                  <span id="supabase-status-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-200 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                    <span>Local Mode</span>
+                  </span>
+                </div>
+                <p class="text-xs text-slate-500 mt-0.5">GitHub Pages වෙබ් අඩවිය සඳහා PostgreSQL Cloud Data Persistence සහ Real-Time Synchronization</p>
+              </div>
+            </div>
+
+            <!-- Quick Doc Link -->
+            <a href="SUPABASE_SETUP.md" target="_blank" class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-2 rounded-xl transition-all self-start sm:self-auto">
+              <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+              <span>සැකසුම් උපදෙස් (Setup Guide)</span>
+            </a>
+          </div>
+
+          <form onsubmit="event.preventDefault(); window.handleSupabaseConnect();" class="space-y-5">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              
+              <!-- Supabase Project URL -->
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  1. Supabase Project URL:
+                </label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">🔗</span>
+                  <input 
+                    id="supabase-url-input" 
+                    type="url" 
+                    placeholder="https://xyzprojectid.supabase.co" 
+                    class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm font-mono focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-slate-800"
+                  >
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1">Supabase Dashboard &rarr; Project Settings &rarr; API &rarr; Project URL</p>
+              </div>
+
+              <!-- Supabase Anon Public Key -->
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  2. Supabase Public Anon Key:
+                </label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">🔑</span>
+                  <input 
+                    id="supabase-key-input" 
+                    type="password" 
+                    placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." 
+                    class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm font-mono focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-slate-800"
+                  >
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1">Supabase Dashboard &rarr; Project Settings &rarr; API &rarr; Project API keys (anon / public)</p>
+              </div>
+
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="pt-2 flex flex-wrap items-center gap-3">
+              <button 
+                type="submit" 
+                id="btn-save-supabase"
+                class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-2"
+              >
+                <i data-lucide="link-2" class="w-4 h-4"></i>
+                <span>සම්බන්ධ කරන්න (Test & Connect)</span>
+              </button>
+
+              <button 
+                type="button" 
+                onclick="window.handleSyncLocalToSupabase()" 
+                id="btn-sync-supabase"
+                class="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-2"
+              >
+                <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                <span>දත්ත Cloud වෙත Sync කරන්න (Upload Local Orders)</span>
+              </button>
+
+              <button 
+                type="button" 
+                onclick="window.handleDisconnectSupabase()" 
+                id="btn-disconnect-supabase"
+                class="px-4 py-2.5 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-700 font-semibold text-xs rounded-xl transition-all border border-slate-200 hover:border-red-200 flex items-center gap-1.5"
+              >
+                <i data-lucide="unlink" class="w-3.5 h-3.5"></i>
+                <span>Disconnect (Revert to Local)</span>
+              </button>
+            </div>
+
+            <!-- Feedback Message Container -->
+            <div id="supabase-feedback-msg" class="hidden text-xs font-semibold p-3 rounded-xl"></div>
+          </form>
+
+          <!-- 3-Step Setup Quick Guide in Card -->
+          <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 text-xs text-slate-600 space-y-2.5">
+            <div class="font-bold text-slate-800 text-xs flex items-center gap-2">
+              <i data-lucide="info" class="w-4 h-4 text-emerald-600"></i>
+              <span>Supabase Cloud Database සකස් කර ගන්නා සරල පියවර 3:</span>
+            </div>
+            <ol class="list-decimal list-inside space-y-1 text-[11px] sm:text-xs text-slate-600 leading-relaxed font-sinhala">
+              <li><strong>supabase.com</strong> වෙත ගොස් නොමිලේ ගිණුමක් සාදා නව Project එකක් (e.g. <code>rasamuthu-rice</code>) සාදන්න.</li>
+              <li>ව්‍යාපෘතියේ <strong>SQL Editor</strong> වෙත ගොස් මෙම ව්‍යාපෘතියේ ඇති <code>supabase_schema.sql</code> ගොනුවේ කේතය Paste කර <strong>Run</strong> ක්ලික් කරන්න.</li>
+              <li><strong>Project Settings &rarr; API</strong> වෙතින් <strong>Project URL</strong> සහ <strong>anon public key</strong> පිටපත් කර ඉහත කොටු 2ට ඇතුළත් කර <strong>Test & Connect</strong> ක්ලික් කරන්න.</li>
+            </ol>
+          </div>
+
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-auto">
+      <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="font-sinhala">
+          © 2026 <strong class="text-slate-800">රසමුතු Rice Mills</strong>. සියලුම හිමිකම් ඇවිරිණි.
+        </div>
+        <div class="flex items-center gap-4 text-[11px] text-slate-400">
+          <span>ලිපිනය: වේදිනිගම, කුඩා කත්නෝරුව, මීගලෑව</span>
+          <span>•</span>
+          <span>Hotline: 076 713 6323</span>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 3. INVOICE / RECEIPT PRINT MODAL                                          -->
+  <!-- ========================================================================= -->
+  <div id="receipt-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs items-center justify-center p-4">
+    <div id="print-modal-container" class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 relative animate-fadeIn">
+      <button onclick="window.closeReceiptModal()" class="no-print absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-colors">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+
+      <div id="receipt-content">
+        <!-- Injected dynamically -->
+      </div>
+
+      <div class="no-print mt-6 pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+        <button onclick="window.closeReceiptModal()" class="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-xl">
+          Close
+        </button>
+        <button onclick="window.print()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5">
+          <i data-lucide="printer" class="w-4 h-4"></i>
+          <span>Print Receipt</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification System -->
+  <div id="admin-toast" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 text-white px-5 py-3 rounded-2xl shadow-2xl border border-amber-400/40 text-xs sm:text-sm font-bold flex items-center gap-3 backdrop-blur-md animate-toast">
+    <i data-lucide="check-circle" class="w-5 h-5 text-emerald-400 shrink-0"></i>
+    <span id="admin-toast-text" class="font-sinhala">ක්‍රියාව සාර්ථකයි!</span>
+  </div>
+
+  <!-- Supabase Cloud Database Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabaseConfig.js"></script>
+  <script src="supabaseClient.js"></script>
+
+  <!-- Admin JavaScript -->
+  <script src="admin.js"></script>
+</body>
+</html>
